@@ -118,9 +118,6 @@
     <Reference Include="Il2CppSystem.Xml.Linq">
       <HintPath>D:\Steam\steamapps\common\RetroGadgets\MelonLoader\Il2CppAssemblies\Il2CppSystem.Xml.Linq.dll</HintPath>
     </Reference>
-    <Reference Include="JinianNet.JNTemplate">
-      <HintPath>D:\Steam\steamapps\common\RetroGadgets\UserLibs\JinianNet.JNTemplate.dll</HintPath>
-    </Reference>
     <Reference Include="MelonLoader">
       <HintPath>D:\Steam\steamapps\common\RetroGadgets\MelonLoader\net6\MelonLoader.dll</HintPath>
     </Reference>

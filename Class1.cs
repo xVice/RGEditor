@@ -7,7 +7,7 @@ using Il2Cpp;
 using UnityEngine;
 using Il2CppInterop.Runtime.Injection;
 using Il2CppSystem.Dynamic;
-using JinianNet.JNTemplate;
+using Il2CppUI.Apps;
 
 [assembly: MelonInfo(typeof(EntryPoint), "RGEdit", "0.0.1", "Jupe")]
 [assembly: MelonGame("Evil Licorice", "Retro Gadgets")]
@@ -30,7 +30,8 @@ namespace RGEditor
         public override void OnApplicationLateStart()
         {
             MonkeyEndpoints.AddEndpoint(new HomePage(sdk));
-    
+            MonkeyEndpoints.AddEndpoint(new SetCpuCode(sdk));
+
 
             MonkeyServer.StartServer(true, true);
             MonkeyServer.AddPrefix("http://localhost:8000/");
@@ -46,29 +47,60 @@ namespace RGEditor
 
     public class SDK : MonoBehaviour
     {
-   
-
         public void Awake()
         {
             MelonLogger.Msg("Sdk loaded");
+            //MultiTool.instance.LogMessageToConsole(MultiTool.LogType.Info, "RetroEdit sdk loaded!");
         }
 
         public GadgetStruct GetCurrentGadget()
         {
             var currentGadget = FindObjectOfType<Gadget>();
-            var cpus = currentGadget.cpus; //bad hell
             return new GadgetStruct(currentGadget.displayName, currentGadget.description);
         }
+
+        public SceneManager GetSceneManager()
+        {
+            return FindObjectOfType<SceneManager>();
+        }
+
+        public void SetCpuCode(int index, string code)
+        {
+            FindObjectOfType<DebugApp>().SetCodeAsset(new CodeAsset($"CPU{index}.lua", code)); //<-- :D
+
+            /*
+
+            var gadget = GetSceneManager().gadget;
+            var assetContainer = gadget.assetContaniner;
+            foreach(var assetdict in assetContainer.assets)
+            {
+                foreach(var asset in assetdict.Value.values)
+                {
+                    if(asset.GetAssetType() == AssetType.Code)
+                    {
+                        asset.
+                    }
+                }
+
+             
+            }
+            */
+
+
+        }
+
+    
+
+ 
 
         public CPUStruct[] GetCurrentGadgetCPUS()
         {
             List<CPUStruct> cpusStructs = new List<CPUStruct>();
             var cpus = FindObjectOfType<SceneManager>().gadget.cpus.ToArray();
-            Console.WriteLine("Cpus: "+ cpus.Length);
             foreach(var cpu in cpus)
             {
-             
-                var cpuStruct = new CPUStruct(cpu.GetCodeAsset().sourceCode);
+                var cpuStruct = new CPUStruct(cpu.GetCodeAsset().name, cpu.GetCodeAsset().sourceCode);
+                
                 cpusStructs.Add(cpuStruct);
             }
             return cpusStructs.ToArray();
@@ -78,10 +110,12 @@ namespace RGEditor
 
         public struct CPUStruct
         {
+            public string Name { get; set; }
             public string SourceCode { get; set; }
 
-            public CPUStruct(string SourceCode)
+            public CPUStruct(string Name, string SourceCode)
             {
+                this.Name = Name;
                 this.SourceCode = SourceCode;
             }
         }
@@ -98,7 +132,28 @@ namespace RGEditor
   
             }
         }
+    }
 
+    public class SetCpuCode : MonkeyEndpoint
+    {
+        public override string Endpoint { get => "/setcpucode/"; }
+
+        SDK sdk;
+
+        public SetCpuCode(SDK sdk)
+        {
+            this.sdk = sdk;
+        }
+
+        public override MonkeyResponse Execute(MonkeyRequest req)
+        {
+            var request = req.jsonReq;
+
+            sdk.SetCpuCode(request.Value<int>("CPUIndex"), request.Value<string>("Code"));
+            var cpu = sdk.GetCurrentGadgetCPUS()[request.Value<int>("CPUIndex")];
+
+            return MonkeyResponse.Json(req, cpu);
+        }
     }
 
     public class HomePage : MonkeyEndpoint
@@ -115,9 +170,9 @@ namespace RGEditor
         public override MonkeyResponse Execute(MonkeyRequest req)
         {
             var gadget = sdk.GetCurrentGadget();
+            var cpus = sdk.GetCurrentGadgetCPUS();
 
-            
-            return MonkeyResponse.RenderTemplate(req, "./Mods/templates/home.html", new { Gadget = gadget});
+            return MonkeyResponse.RenderTemplate(req, "./Mods/templates/home.html", new { Gadget = gadget, CPUS = cpus});
         }
     }
 }
